@@ -1,0 +1,1433 @@
+CREATE TABLE ODSEK (
+    O#      smallint not null primary key,
+    Naziv   nvarchar2(12) not null
+);
+
+INSERT INTO ODSEK VALUES(100, 'Informatika');
+INSERT INTO ODSEK VALUES(200, 'Menadzment');
+
+SELECT * FROM ODSEK;
+
+CREATE TABLE SMER(
+    S#      smallint not null primary key,
+    Naziv   nvarchar2(24) not null,
+    Odsek#  smallint not null,
+    CONSTRAINT fk_SMER_ODSEK foreign key (Odsek#) references ODSEK(O#)
+);
+
+CREATE TABLE STUDENT(
+    I#      smallint not null primary key,
+    Ime     nvarchar2(7) not null,
+    Prezime nvarchar2(7) not null,
+    Slika   BLOB null,
+    DatRod  date not null,
+    GodStud smallint not null
+            check ((GodStud >= 1) and (GodStud <=4)),
+    VozKat  nchar(1) null
+            check (VozKat in ('A', 'B', 'C', 'D', 'E')),
+    Kredit  integer default 0 not null
+            check(Kredit>=0),
+    Stipendija smallint null
+            check ((Stipendija >= 0) or (Stipendija IS NULL)),
+    Smer#   smallint null CONSTRAINT fk_STUDENT_SMER references SMER(S#)
+);
+
+ALTER TABLE STUDENT 
+    DROP COLUMN Slika;
+    
+ALTER TABLE STUDENT 
+    ADD SredIme nvarchar2(7) null;
+    
+CREATE TABLE PREDMET(
+    P#      smallint not null primary key,
+    Naziv   nvarchar2(24) not null unique,
+    Vrsta   nchar(3) not null check (Vrsta in ('IZB', 'OBV')),
+    ESPB    smallint null,
+    Odsek#  smallint not null CONSTRAINT fk_PREDMET_ODSEK references ODSEK(O#)
+);
+
+CREATE TABLE ISPIT(
+    Indeks#     smallint not null,
+    Predmet#    smallint not null,
+    DatPol      date not null,
+    Ocena       smallint not null
+                check((Ocena >= 6) and (Ocena <= 10)),
+    CONSTRAINT pk_ISPIT primary key (Indeks#, Predmet#),
+    CONSTRAINT pk_ISPIT_STUDENT foreign key (Indeks#) references STUDENT(I#),
+    CONSTRAINT pk_ISPIT_PREDMET foreign key (Predmet#) references PREDMET(P#)
+);
+
+CREATE VIEW INF_STUDENT AS
+    SELECT
+        I#      as "Broj indeksa",
+        Ime     as "Ime",
+        Prezime as "Prezime",
+        GodStud as "Godina studija",
+        SM.Naziv as "Smer",
+        O.Naziv  as "Odsek"
+    FROM STUDENT ST
+        JOIN SMER SM ON ST.Smer# = SM.S#
+        JOIN ODSEK O ON SM.Odsek# = O.O#
+    WHERE O.Naziv LIKE 'Informatika';
+    
+CREATE VIEW MEN_STUDENT AS
+    SELECT
+        I#      as "Broj indeksa",
+        Ime     as "Ime",
+        Prezime as "Prezime",
+        GodStud as "Godina studija",
+        SM.Naziv as "Smer",
+        O.Naziv  as "Odsek"
+    FROM STUDENT ST
+        JOIN SMER SM ON ST.Smer# = SM.S#
+        JOIN ODSEK O ON SM.Odsek# = O.O#
+    WHERE O.Naziv LIKE 'Menadzment';
+    
+CREATE VIEW BRU_STUDENT AS
+    SELECT
+        I#      as "Broj indeksa",
+        Ime     as "Ime",
+        Prezime as "Prezime",
+        GodStud as "Godina studija",
+        'Neodredjen - Brucos' as "Odsek"
+    FROM STUDENT ST
+    WHERE Smer# IS NULL;
+    
+CREATE VIEW STUDENT_POLOZIO AS
+    SELECT
+        ST.I# as "Broj indeksa",
+        Ime     as "Ime",
+        Prezime as "Prezime",
+        Naziv   as "Predmet",
+        Vrsta   as "Vrsta",
+        ESPB    as "ESPB",
+        DatPol  as "Datum_ispita",
+        Ocena   as "Ocena"
+    FROM STUDENT ST
+        JOIN ISPIT I ON ST.I# = I.Indeks#
+        JOIN PREDMET P ON I.Predmet# = P.P#;
+        
+CREATE VIEW STUDENT_FINANS AS
+    SELECT
+         I#      as "Broj indeksa",
+        Ime     as "Ime",
+        Prezime as "Prezime",
+        Kredit  AS "Kredit",
+        COALESCE (Stipendija, 0) AS "Stipendija",
+        (Kredit + COALESCE(Stipendija, 0)) as "Ukupno"
+    FROM STUDENT;
+    
+INSERT INTO SMER VALUES(10, 'Softversko inzenjerstvo', 100);
+INSERT INTO SMER VALUES(20, 'Informacioni sistemi', 100);
+INSERT INTO SMER VALUES(30, 'Informacione tehnologije', 100);
+INSERT INTO SMER VALUES(50, 'Upravljanje proizvodnjom', 100);
+INSERT INTO SMER VALUES(60, 'Upravljanje poslovanjem', 100);
+INSERT INTO SMER VALUES(70, 'Upravljanje kadrovima', 100);
+INSERT INTO SMER VALUES(75, 'Upravljanje ...', 100);
+
+
+SELECT * FROM ODSEK;
+SELECT * FROM SMER;
+
+DELETE SMER WHERE S# IN (71, 72, 73, 74, 75);
+
+SELECT value
+    FROM nls_session_parameters
+    WHERE parameter = 'NLS_DATE_FORMAT';
+    
+BEGIN
+    EXECUTE IMMEDIATE 'ALTER SESSION SET NLS_DATE_FORMAT=''DD-MM-YYYY''';
+END;
+
+INSERT INTO STUDENT
+(I#, Ime, Prezime, SredIme, DatRod, GodStud, VozKat, Kredit, Stipendija, Smer#)
+VALUES (17002, 'Ana', 'Kosti?', NULL, '27-07-1998', 1, NULL, 100, NULL, NULL);
+INSERT INTO STUDENT
+(I#, Ime, Prezime, SredIme, DatRod, GodStud, VozKat, Kredit, Stipendija, Smer#)
+VALUES (17014, 'Ana', 'Mari?', 'Jova', '16-05-1998', 1, 'B', 100, NULL, NULL);
+INSERT INTO STUDENT
+(I#, Ime, Prezime, SredIme, DatRod, GodStud, VozKat, Kredit, Stipendija, Smer#)
+VALUES (17008, 'Anka', 'Ani?', 'Saša', '23-05-1998', 1, 'B', 100, 50, NULL);
+INSERT INTO STUDENT
+(I#, Ime, Prezime, SredIme, DatRod, GodStud, VozKat, Kredit, Stipendija, Smer#)
+VALUES (16002, 'Anica', 'Bari?', NULL, '23-09-1997', 2, 'B', 150, 20, 10);
+INSERT INTO STUDENT
+(I#, Ime, Prezime, SredIme, DatRod, GodStud, VozKat, Kredit, Stipendija, Smer#)
+VALUES (16014, 'Mara', 'Ili?', 'Mita', '11-09-1998', 2, 'A', 150, NULL, 20);
+INSERT INTO STUDENT
+(I#, Ime, Prezime, SredIme, DatRod, GodStud, VozKat, Kredit, Stipendija, Smer#)
+VALUES (16008, 'Mila', 'Jovi?', 'Saša', '27-07-1998', 2, 'C', DEFAULT, 50, 60);
+INSERT INTO STUDENT
+(I#, Ime, Prezime, SredIme, DatRod, GodStud, VozKat, Kredit, Stipendija, Smer#)
+VALUES (15002, 'Aca', 'Kosti?', 'Jova', '17-06-1996', 3, 'B', 200, NULL, 10);
+INSERT INTO STUDENT
+(I#, Ime, Prezime, SredIme, DatRod, GodStud, VozKat, Kredit, Stipendija, Smer#)
+VALUES (15014, 'Moma', 'Koji?', NULL, '17-06-1996', 3, 'B', 200, 20, 20);
+INSERT INTO STUDENT
+(I#, Ime, Prezime, SredIme, DatRod, GodStud, VozKat, Kredit, Stipendija, Smer#)
+VALUES (15008, 'Jova', 'Kun', 'Saša', '12-12-1996', 3, NULL, 200, NULL, 50);
+INSERT INTO STUDENT
+(I#, Ime, Prezime, SredIme, DatRod, GodStud, VozKat, Kredit, Stipendija, Smer#)
+VALUES (14002, 'Laza', 'Mari?', 'Raša', '21-01-1995', 4, NULL, 220, 20, 10);
+INSERT INTO STUDENT
+(I#, Ime, Prezime, SredIme, DatRod, GodStud, VozKat, Kredit, Stipendija, Smer#)
+VALUES (14014, 'Jova', 'Kiš', NULL, '23-03-1995', 4, 'C', 220, 20, 50);
+
+
+
+INSERT INTO PREDMET VALUES ( 1, 'Matematika 1', 'OBV', 6, 100);
+INSERT INTO PREDMET VALUES ( 2, 'Programiranje 1', 'OBV', 6, 100);
+INSERT INTO PREDMET VALUES ( 3, 'Ekonomija', 'OBV', 8, 200);
+INSERT INTO PREDMET VALUES ( 4, 'Uvod u IS', 'OBV', 6, 100);
+INSERT INTO PREDMET VALUES ( 5, 'Osnovi organizacije', 'OBV', 6, 200);
+INSERT INTO PREDMET VALUES ( 6, 'Menadžment', 'OBV', 6, 100);
+INSERT INTO PREDMET VALUES ( 7, 'Baze podataka', 'OBV', 6, 100);
+INSERT INTO PREDMET VALUES ( 8, 'Sociologija', 'IZB', 4, 200);
+INSERT INTO PREDMET VALUES ( 9, 'Psihologija', 'IZB', 4, 200);
+INSERT INTO PREDMET VALUES (10, 'Logika', 'IZB', 4, 200);
+INSERT INTO PREDMET VALUES (11, 'Filosofija', 'IZB', 4, 200);
+INSERT INTO PREDMET VALUES (12, 'Operativni sistemi', 'OBV', 5, 100);
+INSERT INTO PREDMET VALUES (13, 'Osnovi kvaliteta', 'OBV', 6, 200);
+INSERT INTO PREDMET VALUES (14, 'Arhitektura ra?unara', 'OBV', 5, 100);
+INSERT INTO PREDMET VALUES (15, 'Proizvodno inženjerstvo','OBV', 6, 200);
+INSERT INTO PREDMET VALUES (16, 'Matematika 2', 'OBV', 5, 100);
+INSERT INTO PREDMET VALUES (17, 'Programiranje 2', 'OBV', 4, 100);
+INSERT INTO PREDMET VALUES (18, 'Marketing', 'OBV', 6, 200);
+INSERT INTO PREDMET VALUES (19, 'Finansije', 'OBV', 6, 200);
+INSERT INTO PREDMET VALUES (20, 'Algoritmi', 'IZB', 4, 100);
+INSERT INTO PREDMET VALUES (21, 'Strukture podataka', 'OBV', 6, 100);
+INSERT INTO PREDMET VALUES (22, 'Upravl?anje zalihama', 'OBV', 6, 200);
+
+
+
+-- Promena formata datuma
+BEGIN
+EXECUTE IMMEDIATE 'ALTER SESSION SET NLS_DATE_FORMAT=''DD.MM.YYYY''';
+END;
+/
+--INSERT INTO ISPIT...
+--MATEMATIKA 1
+INSERT INTO ISPIT VALUES (17002, 1, '24.06.2017', 6);
+INSERT INTO ISPIT VALUES (17014, 1, '24.06.2017', 8);
+INSERT INTO ISPIT VALUES (17008, 1, '29.09.2017', 8);
+INSERT INTO ISPIT VALUES (16008, 1, '27.06.2016', 6);
+INSERT INTO ISPIT VALUES (16014, 1, '27.06.2016', 7);
+INSERT INTO ISPIT VALUES (16002, 1, '27.06.2016', 9);
+INSERT INTO ISPIT VALUES (15002, 1, '09.09.2015', 10);
+INSERT INTO ISPIT VALUES (15008, 1, '09.09.2015', 9);
+INSERT INTO ISPIT VALUES (15014, 1, '09.09.2015', 8);
+INSERT INTO ISPIT VALUES (14002, 1, '16.06.2014', 9);
+INSERT INTO ISPIT VALUES (14014, 1, '16.06.2014', 6);
+--MATEMATIKA 2
+INSERT INTO ISPIT VALUES (17014, 16, '29.09.2017', 8);
+INSERT INTO ISPIT VALUES (16008, 16, '27.09.2016', 6);
+INSERT INTO ISPIT VALUES (16014, 16, '27.06.2016', 7);
+INSERT INTO ISPIT VALUES (15002, 16, '09.09.2016', 10);
+INSERT INTO ISPIT VALUES (15008, 16, '09.09.2016', 9);
+INSERT INTO ISPIT VALUES (15014, 16, '09.09.2016', 6);
+INSERT INTO ISPIT VALUES (14002, 16, '21.03.2014', 8);
+INSERT INTO ISPIT VALUES (14014, 16, '21.03.2014', 6);
+-- OSN. ORGANIZAC.
+INSERT INTO ISPIT VALUES (14002, 5, '27.01.2014', 6);
+INSERT INTO ISPIT VALUES (14014, 5, '27.06.2014', 7);
+INSERT INTO ISPIT VALUES (15002, 5, '27.09.2015', 7);
+INSERT INTO ISPIT VALUES (15008, 5, '28.01.2015', 6);
+INSERT INTO ISPIT VALUES (15014, 5, '29.06.2015', 8);
+INSERT INTO ISPIT VALUES (16002, 5, '27.09.2016', 9);
+INSERT INTO ISPIT VALUES (16008, 5, '28.01.2016', 9);
+INSERT INTO ISPIT VALUES (16014, 5, '29.06.2016', 9);
+INSERT INTO ISPIT VALUES (17002, 5, '27.09.2017', 8);
+INSERT INTO ISPIT VALUES (17008, 5, '28.01.2017', 10);
+INSERT INTO ISPIT VALUES (17014, 5, '28.01.2017', 8);
+-- EKONOM.
+INSERT INTO ISPIT VALUES (14002, 3, '28.01.2014', 6);
+INSERT INTO ISPIT VALUES (14014, 3, '27.06.2014', 7);
+INSERT INTO ISPIT VALUES (15002, 3, '26.09.2015', 7);
+INSERT INTO ISPIT VALUES (15008, 3, '28.01.2015', 8);
+INSERT INTO ISPIT VALUES (15014, 3, '27.06.2015', 7);
+INSERT INTO ISPIT VALUES (16002, 3, '26.09.2016', 8);
+INSERT INTO ISPIT VALUES (16008, 3, '24.01.2016', 9);
+INSERT INTO ISPIT VALUES (17002, 3, '22.09.2017', 10);
+-- PROGRAMIR. 1
+INSERT INTO ISPIT VALUES (14002, 2, '28.01.2014', 6);
+INSERT INTO ISPIT VALUES (15002, 2, '26.09.2014', 7);
+INSERT INTO ISPIT VALUES (15014, 2, '27.06.2014', 9);
+INSERT INTO ISPIT VALUES (16002, 2, '26.09.2016', 10);
+INSERT INTO ISPIT VALUES (16014, 2, '23.06.2016', 8);
+INSERT INTO ISPIT VALUES (17002, 2, '23.06.2016', 9);
+INSERT INTO ISPIT VALUES (17014, 2, '23.06.2016', 8);
+-- PROGRAMIR. 2
+INSERT INTO ISPIT VALUES (14002, 17, '11.02.2015', 7);
+INSERT INTO ISPIT VALUES (15002, 17, '11.02.2016', 7);
+INSERT INTO ISPIT VALUES (15014, 17, '11.02.2016', 8);
+INSERT INTO ISPIT VALUES (16002, 17, '12.02.2017', 10);
+INSERT INTO ISPIT VALUES (16014, 17, '24.02.2017', 8);
+INSERT INTO ISPIT VALUES (17002, 17, '24.02.2016', 9);
+-- UPR. ZALIH.
+INSERT INTO ISPIT VALUES (15008, 22, '28.01.2016', 6);
+
+SELECT * FROM ISPIT;
+SELECT * FROM STUDENT_POLOZIO;
+
+--prikazati studente kod kojih u prezimenu nije o ispred i
+SELECT I#, Ime, Prezime FROM STUDENT WHERE Prezime NOT LIKE '%O%i%' AND Prezime NOT LIKE '%o%i%'; --isto radi kao ovaj dole
+SELECT I#, Ime, Prezime FROM STUDENT WHERE NOT (Prezime LIKE '%O%i%' OR Prezime LIKE '%o%i%');
+
+SELECT Ime, SredIMe, Prezime FROM STUDENT WHERE SredIme IS NULL; --ne koristiti =NULL ili !=NULL, vec IS NULL i IS NOT NULL
+
+--funkcija NVL() privremeno menja NULL oznaku sa vrednoscu koja je navedena
+
+--funkcija COALESCE() je niz izraza, ona vraca vrednost prvog ne NULL izraza. ukoliko su svi izrazi NULL vraca NULL
+
+SELECT
+    ime,
+    SredIme,
+    Prezime 
+    FROM STUDENT;
+    
+SELECT
+    Ime,
+    NVL(SredIme, '  -/-') as "Srednje ime",
+    Prezime 
+    FROM STUDENT;
+    
+SELECT
+    Ime,
+    Prezime,
+    NVL(Stipendija, 0) "Stipendija" 
+    FROM STUDENT;
+    
+Select
+    Ime,
+    Prezime,
+    --COALESCE(Stipendija, 0) "Stipendija"
+    COALESCE(Stipendija, NULL, NULL, NULL, 0) "Stipendija"
+   -- COALESCE(Stipendija, NULL, 1, NULL, 0) "Stipendija" --stampace 1
+    -- COALESCE(Stipendija, NULL, NULL, NULL, NULL) "Stipendija" --stampace NULL
+    FROM STUDENT;
+ 
+ --prikazati ime, prez, godStud, godinu studija, sifru smera za sve studente  (pazi brucos nema sifru smera) 
+  Select
+    Ime,
+    Prezime,
+    GodStud,
+    Smer#,
+    COALESCE(CAST(Smer# as nvarchar2(14)), N'Brucos') "Sifra smera" --castujemo Smer u nvarchar2 da bi prikazalo Brucos 
+    FROM STUDENT;        --N je za national character
+    
+    --prikazati imena, sr imena,prezimena svih studenata. ukoliko
+    --srednje ime nije poznato prikazati karakter ' N/A' koristiti COALESCE()
+    Select
+    Ime,
+    COALESCE(SredIme, N' N/A') "Srednje ime",
+    Prezime
+    FROM STUDENT; 
+    
+    --prikazati ime, prezime, stipendiju za sve studente
+    --kome je stip nepoznata prikazati Nepoznato
+    Select
+    Ime,
+    Prezime,
+    COALESCE(CAST(Stipendija as nvarchar2(14)), N' Nepoznato') "Stipendija"
+    FROM STUDENT; 
+    
+    --COALESCE slozeniji primer: Tabela ISPLATA sastoji se od tri kolone koje sadrze podatke
+    --o godisnjim isplatama zaposlenih. Moguca su tri nacina obracuna isplate: isplata po broju radnih sati
+    --(kolona: satnica), isplata utvrdjene godisnje plate(kolona:plata) i po ostvarenoj
+    --prodaji (kolone: provizija, broj_prodaja). Zaposleni prima isplatu samo po jednom od navedenh
+    --modela. zato se u tabeli nalaze podaci samo za jedan od navedenih modela za svakog
+    --od zaposlenih. Izracunati koliko ce primiti novca svako od zaposlenih.
+    
+    DROP TABLE ISPLATA;
+
+
+
+CREATE TABLE ISPLATA(
+zaposlen_id int NOT NULL primary key,
+satnica number NULL,
+plata number NULL,
+provizija number NULL,
+broj_prodaja smallint NULL);
+
+
+
+INSERT INTO ISPLATA VALUES ( 1, 10.00, NULL, NULL, NULL);
+INSERT INTO ISPLATA VALUES ( 2, 20.00, NULL, NULL, NULL);
+INSERT INTO ISPLATA VALUES ( 3, 30.00, NULL, NULL, NULL);
+INSERT INTO ISPLATA VALUES ( 4, 40.00, NULL, NULL, NULL);
+INSERT INTO ISPLATA VALUES ( 5, NULL, 10000.00, NULL, NULL);
+INSERT INTO ISPLATA VALUES ( 6, NULL, 20000.00, NULL, NULL);
+INSERT INTO ISPLATA VALUES ( 7, NULL, 30000.00, NULL, NULL);
+INSERT INTO ISPLATA VALUES ( 8, NULL, 40000.00, NULL, NULL);
+INSERT INTO ISPLATA VALUES ( 9, NULL, NULL, 15000, 3);
+INSERT INTO ISPLATA VALUES (10, NULL, NULL, 25000, 2);
+INSERT INTO ISPLATA VALUES (11, NULL, NULL, 20000, 6);
+INSERT INTO ISPLATA VALUES (12, NULL, NULL, NULL, NULL);
+INSERT INTO ISPLATA VALUES (13, NULL, NULL, 14000, 4);
+
+
+
+SELECT * FROM ISPLATA;
+
+
+
+SELECT
+    zaposlen_id,
+    
+        COALESCE(
+        satnica * 40 * 52, -- 40 = broj radnih sati u sedmici; 52 = broj sedmica u godini
+        plata,
+        provizija * broj_prodaja,  --posto COALESCE ide i kad naidje na prvog koji nije null radi posao
+        0
+     ) 
+     "Isplata"
+FROM ISPLATA
+ORDER BY 1;
+
+--#########################################################################
+SELECT * FROM STUDENT;
+
+SELECT MIN(Kredit), MAX(Kredit), AVG(Kredit) FROM STUDENT;
+
+SELECT 
+    AVG(Ocena) as "Prosecna ocena" 
+    FROM ISPIT 
+    WHERE Predmet#=1;
+
+SELECT I#, Prezime, Ime, DatRod
+    FROM STUDENT
+    WHERE SUBSTR(CAST(DatRod as varchar(10)),4,2) LIKE '09';
+    
+--prikazati sve studente rodjenje 1998.
+
+SELECT I#, Prezime, Ime, DatRod
+    FROM STUDENT
+    WHERE SUBSTR(CAST(DatRod as varchar(10)),7,4) LIKE '1998';
+
+SELECT Prezime || ', '|| Ime as Ime_i_prezime FROM STUDENT; --u javi + a ovde ||
+
+SELECT Ime || '(' || NVL(SredIme, '/') || ')' || Prezime as Ime_i_prezime 
+    FROM STUDENT 
+    ORDER BY Prezime ASC;
+    
+--koliko znakova ima u svakom imenu i prezimenu
+SELECT
+    I#, Ime, LENGTH(Ime), LENGTH(Prezime), LENGTH(Ime) + LENGTH(Prezime) Ukupno
+    FROM STUDENT
+    ORDER BY Ime DESC;
+    
+--COUNT(*) sve kolone
+--COUNT(DISTINCT kolona) jedinstvene vrednosti broji
+--COUNT(kolona) broji ih bez NULL-ova
+
+SELECT Ime, VozKat FROM STUDENT;
+
+SELECT COUNT(VozKat) as "broj studenata" FROM STUDENT;
+SELECT COUNT (DISTINCT Prezime) as "Razlicitih prezimena" FROM STUDENT;
+
+--GROUP BY
+--min max avg kredita studenata
+
+SELECT MIN(Kredit) "Min", MAX(Kredit) "Max", AVG(Kredit)"Avg", COUNT(*) brojStudenata
+FROM STUDENT
+WHERE GodStud IN (1,2,3)
+GROUP BY GodStud;
+
+--koliko je ko polozio ispita
+SELECT Indeks#, COUNT (Indeks#)"Broj polozenih ispita" FROM ISPIT
+GROUP BY Indeks#
+ORDER BY 2 DESC;
+
+--koliko studenata ima isto srednje ime i koje je
+SELECT SredIme, COUNT(*) "Br studenata"
+FROM STUDENT
+GROUP BY SredIme;
+
+SELECT  COALESCE(CAST(Smer# as nvarchar2(14)), N' Brucos') "sifra smera", COUNT(*) "br studenata", AVG(Kredit) "prosek kredita" 
+FROM STUDENT
+GROUP BY Smer#
+ORDER BY 3;
+
+--HAVING
+    --prikazati prez studenata koje se javljaju 2 il vise puta
+    
+Select Prezime, COUNT(*) FROM STUDENT GROUP BY Prezime HAVING COUNT(*) >=2;
+
+SELECT Ime, Prezime, GodStud, Kredit FROM STUDENT;
+SELECT Ime, Prezime, GodStud, Kredit FROM STUDENT WHERE Prezime NOT LIKE 'Kosti?' GROUP BY GodStud;
+
+--prikazati sve smerove koje pohadja 3 ili vise studenata. jedina tabela gde su studenti i smer je STUDENT
+--pa odatle pozivamo resenje
+
+SELECT Smer#
+FROM STUDENT
+ORDER BY Smer#;
+
+SELECT NVL(CAST(Smer# as nvarchar2(14)), N' Brucos')"smer", COUNT(*) "broj studenata na smeru"
+FROM STUDENT
+GROUP BY Smer#
+HAVING COUNT(*) >=3;
+
+
+-- ПРИМЕР. Приказати имена, презимена, годину студија и возачку дозволу свих   -- студената друге и треће године који имају возачку дозволу.   
+SELECT Ime, Prezime, GodStud, VozKat  
+    FROM (   
+     SELECT *   
+     FROM STUDENT   
+     WHERE VozKat IS NOT NULL) 
+    WHERE GodStud IN (2, 3); 
+
+--FROM    
+-- ЗАДАТАК. Приказати називе, врсте и бодове предмета који имају мање од шест  
+-- бодова (ЕСПБ) сортиран у опадајућем редоследу назива.
+SELECT Naziv, Vrsta, ESPB  
+    FROM (   
+        SELECT *   
+        FROM PREDMET   
+        WHERE ESPB < 6)Predmeti
+        ORDER BY 1 DESC;
+        
+-- 2.5. УПИТИ са КЛАУЗУЛОМ INTO (SELECT...INTO) 
+
+CREATE TABLE BRULE_2 AS
+    SELECT *
+    FROM STUDENT
+    WHERE GodStud = 1;
+    
+SElECT * FROM BRULE_2;
+
+CREATE TABLE BRULE_3 AS
+    SELECT I#, Ime, Prezime
+    FROM STUDENT
+    WHERE GodStud = 1;
+ 
+ SElECT * FROM BRULE_3;
+ 
+ --PRIVREMENE PRIVATNE TABELE
+ /* Привремене (temporary) табеле су посебна врста табела, која се од основних (base) табела разликује због две своје особине:
+ - сваку привремену табелу имплицитно уклања (тј. брише) СУБП,  - свака привремена табела се смешта у системску БП tempdb.
+ Привремене табеле могу бити локалне или глобалне. Локалне привремене табеле се  уклањају на крају сваке текуће сесије; 
+ специфицирају се префиксом # (на пример: #priv_tab). Глобалне привремене табеле се специфицирају префиксом ## и 
+ уклањају се на крају сесије у којој је креирана табела. */
+ 
+ 
+ 
+ -- 2.7. CASE ИЗРАЗИ
+ --jednostavni i slozeni
+ -- Сам CASE израз је сложен (в. синтаксу ниже) и састоји се из  више једноставнијих израза :  
+    -- улазног израза (input expression),  
+    -- када-израза (when expression), 
+    -- резултујућег израза (result expression),  
+    -- резултујућег иначе-израза (else result expression) и  
+    -- логичког израза (Boolean expression). 
+    
+-- ПРИМЕР. /Једноставан CASE израз/ 
+ -- Приказати имена, презимена, шифре смерова, називе смерова и датуме рођења
+ -- свих студената, ако је познато следеће: 
+ --     Смер#      Назив 
+ --   ==========  ========================= 
+ --       10      Софтверско инжењерство 
+ --       20      Информациони системи 
+ --       30      Информационе технологије 
+ --      ...      Остали смерови 
+ 
+ SELECT   Ime, Prezime, Smer#, 
+    CASE Smer#    
+        WHEN 10 THEN 'Softversko '||'inzenjerstvo'  -- može izraz    
+        WHEN 20 THEN 'Informacioni sistemi'  -- a može i samo vrednost    
+        WHEN 30 THEN 'Informacione tehnologije'    
+        ELSE 'Jedan od ostalih smerova'   
+        END NAZIV_SMERA,  
+    DatRod 
+    FROM STUDENT 
+    ORDER BY 3;
+    
+SELECT 
+ Ime, Prezime, Smer#,
+    Case NVL(Smer#,0)
+        WHEN 10 THEN 'Softversko inzenjerstvo'
+        WHEN 20 THEN 'Informacioni sistemi'
+        WHEN 30 THEN 'Informacione tehnoogije'
+        WHEN 0 THEN 'Brucos'
+        ELSE 'Jedan od ostalih'
+    End NAZIV_SMERA,
+    DatRod
+FROM STUDENT 
+ORDER BY 4;
+
+-- ПРИМЕР. /Сложени CASE израз/  
+-- Приказати имена и презимена студената као и њихова 'примања' 
+-- (кредите и стипендије).  
+-- Уз сваког студента приказати и одговарајући опис: 
+-- - ако је износ кредита и стипендије мањи или једнак 100 н.ј.: мали износ, 
+-- - ако је износ кредита и стипендије већи од 100 н.ј. и мањи од 200 н.ј.:  --       средњи износ, 
+-- - ако је износ кредита и стипендије већи од 200 н.ј.: велики износ.
+
+SELECT * FROM STUDENT_FINANS; 
+ 
+SELECT
+    I#,
+    Ime,
+    Prezime,
+    Kredit,
+    Nvl(Stipendija, 0) AS Stipendija,
+    Kredit + Nvl(Stipendija, 0) AS Ukupno,
+        CASE
+            WHEN ( Kredit + Nvl(Stipendija, 0) <= 100 ) THEN
+                '--- Mali iznos'
+            WHEN ( Kredit + Nvl(Stipendija, 0) > 100 )
+                AND ( Kredit + Nvl(Stipendija, 0) <= 200 ) THEN
+                    'Srednji iznos'
+            WHEN ( Kredit + Nvl(Stipendija, 0) > 200 ) THEN
+                '+++ Veliki iznos'
+        END AS Opis
+    FROM
+    STUDENT
+    ORDER BY
+    6;
+
+SELECT * FROM STUDENT;
+SELECT * FROM ISPLATA;
+
+SELECT   P#, Naziv as Naziv_Predmeta, Odsek#, 
+    CASE Odsek#    
+        WHEN 100 THEN 'Informatika'     
+        WHEN 200 THEN 'Menadzment'     
+        ELSE 'Jedan od ostalih odseka'   
+        END Naziv_odseka   
+    FROM PREDMET 
+    ORDER BY 1;
+    
+SELECT
+    I#,
+    Ime,
+    Prezime,
+    Kredit,
+    Nvl(Stipendija, 0) AS Stipendija,
+    Nvl(Stipendija, 0) - Kredit AS Razlika,
+        CASE
+            WHEN ( Nvl(Stipendija, 0) - Kredit < -150 ) THEN
+                'Velika zaduzenost'
+            WHEN ( Nvl(Stipendija, 0) - Kredit >= -150 )
+                AND ( Nvl(Stipendija, 0) - Kredit <= -100 ) THEN
+                    'Srednja zaduzenost'
+            WHEN ( Nvl(Stipendija, 0) - Kredit > -100 ) 
+                AND (Nvl(Stipendija, 0) - Kredit <= -1)
+            THEN
+                'Niska zaduzenost'
+            WHEN (Nvl(Stipendija, 0) - Kredit >= 0)
+            THEN 
+                'Nema zaduzenosti'
+        END AS Nivo_zaduzenosti
+    FROM
+    STUDENT
+    ORDER BY
+    6;
+    
+--PODUPITI
+--jednostavni i slozeni
+
+--jednostavni (prvo se izvrsava unutrasnji deo
+--Приказати имена и презимена свих студената који су уписани на  -- смеру 'Софтверско инжењерство'. 
+
+--1.korak
+SELECT S#, Naziv FROM SMER WHERE Naziv LIKE 'Softversko inzenjerstvo';
+--2.korak
+SELECT I#, Ime, Prezime, Smer# FROM STUDENT WHERE Smer# = 10;
+
+--ili u jednom upitu
+SELECT I#, Ime, Prezime, Smer# 
+    FROM STUDENT 
+    WHERE Smer# = (
+        SELECT S# 
+        FROM SMER 
+        WHERE Naziv LIKE 'Softversko inzenjerstvo');
+
+--a ovo ne radi jer returns more than one row (oni koji nisu softversko inz)
+SELECT I#, Ime, Prezime, Smer# 
+    FROM STUDENT 
+    WHERE Smer# = (
+        SELECT S# 
+        FROM SMER 
+        WHERE Naziv NOT LIKE 'Softversko inzenjerstvo');
+ --zato mora ovako       
+SELECT I#, Ime, Prezime, Smer# 
+    FROM STUDENT 
+    WHERE Smer# != (
+        SELECT S# 
+        FROM SMER 
+        WHERE Naziv LIKE 'Softversko inzenjerstvo');
+        
+--prikazati sve smerove koji pripadaju odseku menadzment
+SELECT S#, Naziv
+    FROM  SMER 
+    WHERE Odsek# = (  
+        SELECT O#   
+        FROM ODSEK  
+        WHERE Naziv LIKE 'Menadzment');
+        
+SELECT * FROM STUDENT;
+
+-- ПРИМЕР. /Подупити засновани на употреби оператора IN/  
+-- Приказати студенте који уписани на смеру 'Управљање пословањем'  -- или 'Управљање производњом'. 
+SELECT S#, Ime, Prezime, Smer#   
+    FROM STUDENT   
+    WHERE Smer# IN (
+        SELECT S#       
+        FROM SMER      
+        WHERE Naziv IN ('Upravljanje poslovanjem', 'Upravljanje proizvodnjom'));
+        
+-- ПРИМЕР. Приказати све студенте који су уписани на одсеку 'Информатика'.
+SELECT Ime, Prezime, Smer#   
+    FROM STUDENT 
+    WHERE Smer# IN (
+        SELECT S#  
+        FROM SMER  
+        WHERE Odsek# = (  
+            SELECT O#   
+            FROM ODSEK   
+            WHERE Naziv LIKE 'Informatika'));
+            
+-- ПРИМЕР. Приказати називе смерова које су уписали студенти који имају највише кредите. 
+SELECT Naziv 
+    FROM SMER  
+    WHERE S# IN (  
+        SELECT Smer#  
+        FROM STUDENT  
+        WHERE Kredit = (   
+            SELECT MAX(Kredit)   
+            FROM STUDENT));
+            
+--sve podatkoe o studentima koji su polozili vise od 5 ispita
+
+
+SELECT *
+    FROM STUDENT
+    WHERE I# IN(
+        SELECT Indeks# FROM(
+        SELECT Indeks#, COUNT (Indeks#) AS brojIspita
+        FROM ISPIT I
+        GROUP BY Indeks#
+        HAVING COUNT(Indeks#) >5
+        )Pom
+        );
+        
+--Jednostavni sa ANY i ALL
+-- ПРИМЕР. /Подупити засновани на употреби оператора ANY/ 
+-- Приказати имена, презимена и кредите свих студената, сем оних који  -- имају најмањи кредите, уређен по кредиту.
+-- Сви студенти  
+SELECT Ime, Prezime, Kredit  
+    FROM STUDENT  
+    ORDER BY Kredit;
+    
+-- Тражени упит: 
+SELECT Ime, Prezime, Kredit  
+    FROM STUDENT  
+    WHERE Kredit > ANY (   
+        SELECT DISTINCT Kredit   
+        FROM STUDENT)  
+        ORDER BY Kredit;
+
+ SELECT Ime, Prezime, Kredit  
+    FROM STUDENT  
+    WHERE Kredit < ANY (   
+        SELECT DISTINCT Kredit   
+        FROM STUDENT)  
+        ORDER BY Kredit;
+
+-- ПРИМЕР. /Подупити засновани на употреби оператора ALL/ 
+-- Приказати имена, презимена и кредите студената који  -- имају највеће кредите
+ SELECT Ime, Prezime, Kredit  
+    FROM STUDENT  
+    WHERE Kredit >= ALL (   
+        SELECT DISTINCT Kredit   
+        FROM STUDENT)  
+        ORDER BY Kredit;
+--najmanje        
+SELECT Ime, Prezime, Kredit  
+    FROM STUDENT  
+    WHERE Kredit <= ALL (   
+        SELECT DISTINCT Kredit   
+        FROM STUDENT)  
+        ORDER BY Kredit;  
+        
+--KORELISANI (SLOZENI)PODUPITI
+-- ПРИМЕР. /Разлика између упита и корелисаног подупита/ -- Приказати све студенте које су уписале смер који има Smer# = 10. 
+-- Упит: 
+SELECT Ime, Prezime, Smer#  
+    FROM STUDENT  
+    WHERE Smer# = 10; 
+    
+-- Корелисани подупит: 
+SELECT Ime, Prezime, Smer#  
+    FROM STUDENT ST  WHERE 10 = ( 
+        SELECT  S#    
+        FROM SMER  SM   
+        WHERE SM.S# = ST.Smer#  );
+        
+-- ЗАДАТАК. Приказати све студенте који су уписали смер 'Управљање производњом'. 
+-- Подупит: 
+SELECT Ime, Prezime, Smer#  
+    FROM STUDENT  
+    WHERE Smer# = (   
+        SELECT  S#   
+        FROM SMER   
+        WHERE Naziv LIKE 'Upravljanje proizvodnjom'); 
+        
+-- Корелисани подупит: 
+SELECT Ime, Prezime, Smer#  
+    FROM STUDENT ST  
+    WHERE 'Upravljanje proizvodnjom' = (   
+        SELECT Naziv    
+        FROM SMER  SM   
+        WHERE SM.S# = ST.Smer#  );
+        
+--sa EXIST
+-- Приказати имена и презимена свих студената који су уписали  -- смер 'Софтверско инжењерство'
+SELECT * FROM SMER;
+SELECT I#, Ime, Prezime, Smer#  
+    FROM STUDENT ST 
+    WHERE EXISTS (   
+        SELECT *  FROM SMER SM   
+        WHERE ST.Smer# = SM.S#     
+        AND Naziv LIKE 'Softversko inzenjerstvo');
+        
+/* ПИТАЊЕ: Како се извршава претходни упит са корелисаним подупитом?  
+ОДГОВОР: Прво, спољни упит обрађује први ред из табеле STUDENT. Затим се  извршава подупит ф-је EXISTS, 
+како би се одредило да ли у табели SMER  постоји неки ред у којем је назив смера 'Софтверско инжењерство' и да је    
+S# тог смера једнака Smer# студента из спољног упита. Ако се подупит  евалуира у TRUE (тј. врати се бар један ред), 
+онда се та особа приказује,  иначе се прелази на следећи ред из табеле STUDENT. */
+
+--prikazati sifre i nazive smerova koje nije niko upisao
+SELECT S#, Naziv
+    FROM SMER S
+    WHERE NOT EXISTS(
+        SELECT *   
+        FROM STUDENT ST  
+        WHERE ST.Smer# = S.S#);
+        
+--OPERATORI SPAJANJA - JOIN
+/* Спајање (енгл. join) је начин обједињавања две (или више) табеле(а) у једну (резултујућу).  
+Спајањем две табеле, првој табели се придодају колоне друге табеле (повећава се степен табеле).   
+Две (или више) табела се могу спојити на више различитих начина:   
+- безусловно спајање (Декартов производ, Картезијански производ; CROSS JOIN)   
+- унутрашње спајање (INNER JOIN или само JOIN), које може бити:   
+    # спајање на основу једнакости (спајање оператором једнакости,     екви-џоин; EQUI-JOIN),  
+    # спајање на основу једнакости без понављања (природно спајање;     NATURAL JOIN), 
+- спајање на основу неједнакости (спајање оператором поређења; THETA JOIN),  
+- спољно спајање (спајање мимо услова; OUTERJOIN), које може бити:   
+     # лево (LEFT OUTER JOIN),   
+    # десно (RIGHT OUTER JOIN) и   
+     # централно (FULL OUTER JOIN),    
+- самоспајање (SELF JOIN). */ 
+  
+-- Безусловно спајање (Декартов производ, Картезијански производ; CROSS JOIN) 
+SELECT Ime, Prezime, Naziv, S#
+    FROM STUDENT CROSS JOIN SMER;
+
+--stara sintaksa:
+SELECT Ime, Prezime, Naziv, S#
+    FROM STUDENT, SMER;
+    
+--INNER JOIN
+SELECT STUDENT.*, SMER.*
+    FROM STUDENT JOIN SMER 
+    ON STUDENT.Smer# = SMER.S#;
+ 
+ --stara sintaksa:
+ SELECT STUDENT.*, SMER.*
+    FROM STUDENT, SMER 
+    WHERE STUDENT.Smer# = SMER.S#;
+    
+--na osnovu jednakosti
+SELECT S.Ime, S.Prezime, S.DatRod, М.S#, М.Naziv  
+    FROM STUDENT S   
+    INNER JOIN SMER М 
+    ON S.Smer# = М.S#; 
+
+--na osnovu nejednakosti
+SELECT S.Ime, S.Prezime, S.DatRod, М.S#, М.Naziv  --kotisti se skoro nikad
+    FROM SMER М  
+    JOIN STUDENT S ON S.Smer# < М.S#; 
+    
+--OUTER JOIN
+--# лево (LEFT OUTER JOIN), 
+-- Приказ свих студената који су уписали смер. Број редова = 8. 
+SELECT S.Ime, S.Prezime, S.DatRod, М.S#, М.Naziv  
+    FROM STUDENT S   
+    JOIN SMER М ON S.Smer# = М.S# 
+    ORDER BY М.S#;
+    
+-- А где су студенти који још увек нису уписали смер? Где су бруцоши? 
+-- Неповезане редове из леве табеле (овде: STUDENT) добијамо левим спољним спајањем:
+SELECT S.Ime, S.Prezime, S.DatRod, M.S#, M.Naziv  
+    FROM STUDENT S   
+    LEFT OUTER JOIN SMER M 
+    ON S.Smer# = M.S# 
+    ORDER BY M.S#;  --moze i LEFT JOIN bez OUTER ali ista stvar
+
+--# десно (RIGHT OUTER JOIN) 
+SELECT S.Ime, S.Prezime, S.DatRod, M.S#, M.Naziv  
+    FROM STUDENT S   
+    RIGHT OUTER JOIN SMER M --moz bez outer
+    ON S.Smer# = M.S# 
+    ORDER BY S.I#;
+    
+--#  celo - FULL OUTER JOIN
+SELECT S.Ime, S.Prezime, S.DatRod, М.S#, М.Naziv  
+    FROM STUDENT S   
+    FULL OUTER JOIN SMER М  --moz bez outer
+    ON S.Smer# = М.S#; 
+ 
+--SELF JOIN
+CREATE TABLE ORG_CEL ( -- organizaciona celina
+OC# int not null primary key,
+Naziv nvarchar2(55) not null,
+Adresa nvarchar2(99) null,
+NadOrgCel int null references ORG_CEL(OC#),
+Budzet int default 10 null
+);
+
+INSERT ALL
+INTO ORG_CEL VALUES (5, N'Preduzeće', N'Bulevar rada 123', NULL, 1) -- početak hijerarhije; Ili NULL ili 5 (tj. sam je sebi nadređen,
+--što znači da nema nadređenog)
+INTO ORG_CEL VALUES (52, N'Proizvodnja', N'Industrijska zona b.b.', 5, 10)
+INTO ORG_CEL VALUES (521, N'Fabrika AA', N'Industrijska zona b.b.', 52, 100)
+INTO ORG_CEL VALUES (5211, N'Pogon AA-1', NULL, 521, 1000)
+INTO ORG_CEL VALUES (5212, N'Pogon AA-2', NULL, 521, 1000)
+INTO ORG_CEL VALUES (52121, N'Odeljenje AA-2-X', NULL, 5212, 10000)
+INTO ORG_CEL VALUES (52122, N'Odeljenje AA-2-Y', NULL, 5212, 10000)
+INTO ORG_CEL VALUES (52123, N'Odeljenje AA-2-Z', NULL, 5212, 10000)
+INTO ORG_CEL VALUES (5213, N'Pogon AA-3', NULL, 521, 1000)
+INTO ORG_CEL VALUES (522, N'Fabrika BB', N'Industrijska zona b.b.', 52, 100)
+INTO ORG_CEL VALUES (53, N'Razvoj', N'Tehnološko-razvojni park 77', 5, 10)
+INTO ORG_CEL VALUES (54, N'Komercijala', N'Zeleni venac 8', 5, 10)
+INTO ORG_CEL VALUES (541, N'Prodaja', N'Zeleni venac 8/3', 54, 100)
+INTO ORG_CEL VALUES (5411, N'Domaća prodaja', NULL, 541, 1000)
+INTO ORG_CEL VALUES (5412, N'Inostrana prodaja', NULL, 541, 1000)
+INTO ORG_CEL VALUES (542, N'Nabavka', N'Zeleni venac 8/4', 54, 100)
+INTO ORG_CEL VALUES (51, N'Uprava', N'Menadžerski trg 1/99', 5, 10)
+SELECT 1 FROM DUAL;
+
+
+
+/*
+UPDATE "SYSTEM"."ORG_CEL" SET NADORGCEL = 3 WHERE OC# in (5, 7);
+*/
+
+
+
+-- Sve organizacione celine
+SELECT * FROM ORG_CEL;
+
+-- nadrejena org celina za Komercijalu
+SELECT POD.OC#, POD.Naziv, NAD.OC# "sifra nadredjenog", NAD.Naziv "Naziv nadredjenog"
+    FROM ORG_CEL NAD
+    JOIN ORG_CEL POD ON POD.NadOrgCel = NAD.OC#
+    WHERE POD.Naziv LIKE 'Komercijala';
+
+--podredjene org celina za Komercijalu    
+SELECT NAD.OC#, NAD.Naziv, POD.OC# "sifra podredjenog", POD.Naziv "Naziv podredjenog"
+    FROM ORG_CEL POD
+    JOIN ORG_CEL NAD ON POD.NadOrgCel = NAD.OC#
+    WHERE NAD.Naziv LIKE 'Komercijala';
+    
+
+-- ПИТАЊЕ: Како приказати целокупну организациону структуру? 
+-- ОДГОВОР: Обични упити, путем спајања, могу да прикажу само први следећи ниво изнад и први следећи ниво испод, 
+--али не могу да прикажу целокупну хијерархију. За то се морају користити рекурзивни упити. 
+
+-- 3.3. РЕКУРЗИВНИ УПИТИ  
+-- За реализацију рекурзивних упита користи се: -- CTE (common table expression)
+-- привремени именовани резултат резултујући скуп). 
+
+SELECT LEVEL Nivo_U_Org_Strukturi, OC#, Naziv, Adresa, NadOrgCel Sifra_nadredjene_OC
+    FROM ORG_CEL
+    START WITH NadOrgCel IS NULL --pocetak hijerarhije u ovom upitu
+    CONNECT BY PRIOR OC# = NadOrgCel
+    ORDER BY 1;
+    
+--prikazati org str proizvodnje (52)
+SELECT LEVEL Nivo_U_Org_Strukturi, OC#, Naziv, Adresa, NadOrgCel Sifra_nadredjene_OC
+    FROM ORG_CEL
+    START WITH OC# = (SELECT OC# FROM ORG_CEL WHERE Naziv LIKE 'Proizvodnja') 
+    CONNECT BY PRIOR OC# = NadOrgCel
+    ORDER BY 1;
+ 
+ 
+ --prikaz prolaska kroz hijer struk: ispis putanje/
+ --Prikazati celokupnu org strukturu
+ --kao i hijerarhijsku putanju za svaku org celinu
+SELECT LEVEL Nivo_U_Org_Strukturi, OC#, Naziv, Adresa, NadOrgCel Sifra_nadredjene_OC, SYS_CONNECT_BY_PATH(Naziv, '/') "Path"
+    FROM ORG_CEL
+    START WITH NadOrgCel IS NULL --pocetak hijerarhije u ovom upitu
+    CONNECT BY PRIOR OC# = NadOrgCel
+    ORDER BY 1;
+    
+--izracunati ukupan budzet org celine komercijala
+SELECT LEVEL Nivo_U_Org_Strukturi, OC#, Naziv, Budzet Adresa, NadOrgCel Sifra_nadredjene_OC
+    FROM ORG_CEL
+    START WITH OC# = (SELECT OC# FROM ORG_CEL WHERE Naziv LIKE 'Komercijala') 
+    CONNECT BY PRIOR OC# = NadOrgCel
+    ORDER BY 1;
+    
+SELECT SUM(Budzet)
+    FROM ORG_CEL
+        Start WITH OC# = (SELECT OC# FROM ORG_CEL WHERE Naziv LIKE 'Komercijala')
+    CONNECT BY PRIOR OC# = NadOrgCel
+    ORDER BY 1;
+    
+--prikazati sifru, naziv , budzet, uk budzet za:
+--1) Komercijala
+SELECT OC#, Naziv, Budzet,
+    (SELECT SUM (OC1.BUDZET) FROM ORG_CEL OC1
+    START WITH OC1.OC# = OC2.OC#
+    CONNECT BY OC1.NADORGCEL = PRIOR OC1.OC#) UKUPAN_BUDZET
+FROM ORG_CEL OC2
+WHERE Naziv IN('Komercijala')
+ORDER BY 1;
+--2) Proizvodnja
+SELECT OC#, Naziv, Budzet,
+    (SELECT SUM (OC1.BUDZET) FROM ORG_CEL OC1
+    START WITH OC1.OC# = OC2.OC#
+    CONNECT BY OC1.NADORGCEL = PRIOR OC1.OC#) UKUPAN_BUDZET
+FROM ORG_CEL OC2
+WHERE Naziv IN('Proizvodnja');
+--
+--3) Razvoj, Uprava, Preduzece, Proizvodnja, Komercijala
+SELECT OC#, Naziv, Budzet,
+    (SELECT SUM (OC1.BUDZET) FROM ORG_CEL OC1
+    START WITH OC1.OC# = OC2.OC#
+    CONNECT BY OC1.NADORGCEL = PRIOR OC1.OC#) UKUPAN_BUDZET
+FROM ORG_CEL OC2
+WHERE Naziv IN('Razvoj', 'Uprava','Preduzece' , 'Proizvodnja', 'Komercijala')
+ORDER BY 1;
+--
+
+--SKUPOVNI OPErATORI
+CREATE TABLE AAA (  
+    broj int, txt nchar(5));  
+
+CREATE TABLE BBB (  
+    broj int, txt nchar(5));
+    
+INSERT INTO AAA VALUES (11, 'aaaaa'); 
+INSERT INTO AAA VALUES (22, 'bbbbb');   
+INSERT INTO AAA VALUES (33, 'ccccc');   
+INSERT INTO AAA VALUES (44, 'ddddd');   
+
+INSERT INTO BBB VALUES  (33, 'ccccc');  
+INSERT INTO BBB VALUES (44, 'ddddd');  
+INSERT INTO BBB VALUES (55, 'eeeee');   
+INSERT INTO BBB VALUES (66, 'fffff');   
+    
+SELECT * FROM AAA
+UNION
+SELECT * FROM BBB;
+
+SELECT * FROM AAA
+MINUS 
+SELECT * FROM BBB;
+
+--presek
+SELECT * FROM AAA
+INTERSECT
+SELECT * FROM BBB;
+
+--koriscenje spajanja za simulaciju skupovnih operacija
+
+--unija upotrebom operatora union
+
+
+
+--DML NAREDBE
+--(INSERT UPDATE DELETE
+
+--PROCEDURE
+
+--da bi se prikazivali rezultati u script output-u
+SET SERVEROUTPUT ON;
+
+--ddl naredba za unistavanje procedure koja se zovve Proc
+DROP PROCEDURE Proc;
+
+--ddl naredba za kreiranje procedure Proc koja nema naredbe(prazna)
+CREATE PROCEDURE Proc IS BEGIN NULL; END;--stored proc
+
+--stvaranje nove ili menjanje postojece
+--napraviti proceduru Proc koja prikazuje 'Zdravo svete'
+CREATE OR REPLACE PROCEDURE Proc IS
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('Zdravo, svete!');
+    END;
+    
+--poziv procedure EXECUTE
+EXECUTE C##OBUKA.Proc;
+--ili
+EXEC SYSTEM.Proc;
+
+--poziv iz anon bloka
+BEGIN
+    Proc;
+    Proc();
+END;
+/
+--poziv iz druge procedure
+CREATE OR REPLACE PROCEDURE "Omotac" IS
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('Izvrsavanje procedure Omotac.');
+    Proc;--poziv procedure Proc
+END;
+/
+
+--napraviti proceduru koja prikazuje vase ime i prezime
+CREATE OR REPLACE PROCEDURE moje_ime_i_prezime1 IS
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('Milan Ivic');
+END;
+/
+EXEC moje_ime_i_prezime1;
+
+--procedura ime i prezime studenta koji ima najvisi prosek
+CREATE OR REPLACE PROCEDURE student_ime_i_prezime IS
+v_ime varchar2(15);
+v_prezime varchar2(15);
+BEGIN
+   SELECT Ime, Prezime INTO v_ime, v_prezime
+   FROM STUDENT
+   WHERE I# IN (SELECT Indeks# 
+        FROM ISPIT 
+        HAVING AVG(Ocena) >= ALL 
+         (SELECT AVG(Ocena) 
+         FROM ISPIT
+         GROUP BY Indeks#)
+       GROUP BY Indeks#);
+    DBMS_OUTPUT.PUT_LINE(v_ime || ' ' ||v_prezime);
+END;
+/
+EXEC student_ime_i_prezime;
+
+--naziv predmeta koji ima najvise espb
+/*SELECT Naziv, ESPB 
+   FROM PREDMET 
+   WHERE ESPB >= ALL(
+   SELECT ESPB FROM PREDMET);
+*/
+CREATE OR REPLACE PROCEDURE predmet_espb IS
+v_ime varchar2(15);
+v_espb smallint;
+BEGIN
+   SELECT Naziv, ESPB INTO v_ime, v_espb
+   FROM PREDMET 
+   WHERE ESPB >= ALL(
+   SELECT ESPB FROM PREDMET);
+    DBMS_OUTPUT.PUT_LINE(v_ime || ' ' ||v_espb);
+END;
+/
+EXEC predmet_espb;
+
+CREATE OR REPLACE PROCEDURE predmet_espb1 IS
+v_ime varchar2(15);
+v_espb smallint;
+BEGIN
+   SELECT Naziv, ESPB INTO v_ime, v_espb
+   FROM PREDMET 
+   WHERE ESPB >= (
+   SELECT MAX(ESPB) FROM PREDMET);
+    DBMS_OUTPUT.PUT_LINE(v_ime || ' ' ||v_espb);
+END;
+/
+
+CREATE OR REPLACE PROCEDURE predmet_espb2 IS
+v_ime varchar2(15);
+v_espb smallint;
+BEGIN
+    FOR  red IN(
+         SELECT Naziv, ESPB 
+        FROM PREDMET 
+        WHERE ESPB >= ALL(
+        SELECT ESPB FROM PREDMET)
+   )
+    LOOP
+        DBMS_OUTPUT.PUT_LINE(red.naziv);
+    END LOOP;  
+END;
+EXEC predmet_espb2;
+
+
+--UPOTREBA ulaznih i izlaznih parametara
+DECLARE
+n number := -999; -- globalna promenljiva koja važi u anonimnom bloku; njena DEFAULT vrednost je -999
+
+PROCEDURE suma ( -- ova procedura se ne kreira, već postoji do kraja bloka
+zbir OUT int, -- izlazni parametar (OUT)
+sabirak_1 IN int := 0, -- ulazni parametar (IN) koji ima postavljenu DEFAULT vrednost 0
+sabirak_2 IN int := 5 -- ulazni paremetar (IN) koji ima postavljenu DEFAULT vrednost 5
+) IS
+BEGIN
+zbir := sabirak_1 + sabirak_2;
+END suma;
+
+BEGIN
+suma(n, 11, 22);
+DBMS_OUTPUT.put('Zbir dva broja: ');
+DBMS_OUTPUT.put_line(n);
+
+suma(n, 11); -- treći parametar ima DEFAULT vrednost 5
+DBMS_OUTPUT.put('Zbir dva broja: ');
+DBMS_OUTPUT.put_line(n);
+END;
+/
+--
+DECLARE
+id_predmeta smallint;
+naziv nvarchar2(24);
+br_bodova smallint;
+
+PROCEDURE promeni_ESP_bodove (
+pred_id IN PREDMET.P#%TYPE, -- Parametar 'pred_id' preuzima tip od kolone P# u tabeli PREDMET
+novi_ESPB IN PREDMET.ESPB%TYPE := 4 -- Parametar 'novi_ESPB' preuzima tip od kolone PREDMET.ESPB,
+) IS -- a uz to i DEFAULT vrednost 4
+BEGIN
+UPDATE PREDMET
+SET ESPB = novi_ESPB
+WHERE P# = pred_id;
+END promeni_ESP_bodove;
+
+BEGIN
+-- staro stanje
+SELECT Naziv, ESPB
+INTO naziv, br_bodova
+FROM PREDMET WHERE NAZIV LIKE 'Ekonomija';
+DBMS_OUTPUT.put_line('Predmet: '||naziv||'; ESPB: '||br_bodova||';');
+
+-- novo stanje, upotreba DEFAULT vrednosti parametra novi_ESPB; slučaj (a):
+SELECT P#
+INTO id_predmeta
+FROM PREDMET WHERE NAZIV LIKE 'Ekonomija';
+-- poziv procedure za ažuriranje ESP bodova, bez navodjenja nove vrednosti za ESPB
+promeni_ESP_bodove(id_predmeta);
+SELECT Naziv, ESPB INTO naziv, br_bodova FROM PREDMET WHERE NAZIV LIKE 'Ekonomija';
+DBMS_OUTPUT.put_line('Predmet: '||naziv||'; ESPB: '||br_bodova||';');
+
+
+
+-- novo stanje, parametar novi_ESPB = 6; slučaj (b):
+promeni_ESP_bodove(id_predmeta, 6);
+SELECT Naziv, ESPB INTO naziv, br_bodova FROM PREDMET WHERE NAZIV LIKE 'Ekonomija';
+DBMS_OUTPUT.put_line('Predmet: '||naziv||'; ESPB: '||br_bodova||';');
+END;
+/
+--
+
+DECLARE
+n number := -999; -- globalna promenljiva koja važi u anonimnom bloku; njena DEFAULT vrednost je -999
+
+PROCEDURE menjacnica ( -- ova procedura se ne kreira, već postoji do kraja bloka
+    dinari OUT int, -- izlazni parametar (OUT)
+    evri IN int := 0, -- ulazni parametar (IN) koji ima postavljenu DEFAULT vrednost 0
+    kurs IN int := 5 -- ulazni paremetar (IN) koji ima postavljenu DEFAULT vrednost 5
+    ) IS
+BEGIN
+    dinari := evri * kurs;
+END menjacnica;
+
+BEGIN
+menjacnica(n, 11, 118);
+DBMS_OUTPUT.put('Zbir dva broja: ');
+DBMS_OUTPUT.put_line(n);
+
+menjacnica(n, 118); -- treći parametar ima DEFAULT vrednost 5
+DBMS_OUTPUT.put('Zbir dva broja: ');
+DBMS_OUTPUT.put_line(n);
+END;
+/
+
+
+
+DECLARE
+    vrednost number := 118;
+    
+    PROCEDURE menjacnica (
+        dinari  OUT int,
+        evri IN int : = 0
+       
+        ) IS
+        BEGIN
+            dinari := evri * vrednost;
+            END menjacnica;
+    BEGIN
+        menjacnica (vrednost, 10);
+        DBMS_OUTPUT.put('Konvertovano u dinare:');
+        DBMS_OUTPUT.put_line(vrednost);
+        
+    END;
+    /
+    
+--napisati upit/proceduru koji prikazuje broj indeksa, celo prezime i ime studenta u jednoj koloni
+--nazive odseka i smera koje je student upisao kao i godinu studija
+--ukoliko student ima srednje ime, onda celo ime i prezime napisati u formatu Prezime(Srednje ime) Ime,
+--inace ga prikazati u formatu "Prezime Ime". Koristiti preuzimanje tipa iz tabele: %TYPE
+--savet: pre nego sto se upit upise u proceduru  testirati upit izvan procedure
+   CREATE OR REPLACE PROCEDURE Studenti_ispis IS
+       
+    BEGIN
+        FOR red IN (
+                        SELECT (ime || ' (' || NVL(sredime,'')||') '||prezime) ime,
+                        nazivSmera,nazivOdseka,GodinaStudija
+                         FROM (SELECT ime, sredime, prezime, sm.naziv nazivSmera,o.naziv nazivOdseka,s.godstud godinaStudija
+                                 FROM Student s JOIN smer sm on s.smer#=sm.s# 
+                                        JOIN Odsek o on o.o#=sm.odsek#)
+                    )
+            LOOP
+            DBMS_OUTPUT.PUT(red.ime||' ');
+            DBMS_OUTPUT.PUT(red.nazivSmera||' ');
+            DBMS_OUTPUT.PUT(red.nazivOdseka||' ');
+            DBMS_OUTPUT.PUT(red.GodinaStudija);
+            DBMS_OUTPUT.PUT_LINE('');
+            END LOOP;
+    END;
+    /
+    
+declare
+    procedure ispis is BEGIN 
+        FOR red IN(
+        SELECT ST.I# || ' ' ||
+        CASE 
+            WHEN (ST.SredIme IS NULL) THEN ST.Prezime || ' ' || ST.Ime
+            ELSE ST.Prezime || ' (' || ST.SredIme || ') ' || ST.Ime
+        END || ' ' || OD.Naziv || ' '|| SM.Naziv || ' ' || ST.GodStud  AS opis
+    FROM SMER SM 
+        JOIN STUDENT ST ON ST.Smer#=SM.S# 
+        JOIN ODSEK OD ON SM.Odsek#=OD.O#)
+    LOOP 
+    DBMS_OUTPUT.PUT_LINE(red.opis);
+    END LOOP;
+    END ispis;
+    begin
+    ispis();
+end;
+        
+        
+--OBRADA IZUZETAKA
+  --
+  --
+  --
+  --
+  --
+  --
+  
+  
+--REKURZIVNE PROCEDURE
+
+
+
+
+
+
+--OCUVANJE INTEGRITETA PODATAKA
+
+-- PRIMER. /Očuvanje integriteta podataka: Implementacija vrednosnog pravila integriteta (VPI)/
+--
+-- Poslovno pravilo (proisteklo iz korisničkog zahteva):
+-- Novodobijena ocena (za predmet koji je već položen) mora biti ista ili veća od stare (već postojeće) ocene.
+--
+-- Specifikacija softverskog zahteva:
+-- Neophodno je napisati uskladištenu proceduru koja menja ocenu dobijenu na ispitu, ako su poznati šifra predmeta i
+-- šifra studenta (tj. broj indeksa).
+-- Ukoliko se studentu menja ocena, nova ocena može biti ili ista prethodno dobijenoj oceni ili veća od nje.
+--
+-- Napomena: You can use the %ROWTYPE attribute to declare a record that represents a row in a table
+-- or a row from a query result set, without specifying the names and types for the fields.
+-- Napomena: You can use %TYPE to specify the datatype of a previously declared collection, so that changing the definition
+-- of the collection automatically updates other variables that depend on the number of elements or the element type.
+--
+CREATE OR REPLACE PROCEDURE promeni_ocenu(predmet_id IN ISPIT.Predmet#%TYPE,
+        student_id IN ISPIT.Indeks#%TYPE,ocena_nova IN smallint)
+IS
+    ocena_stara smallint := 5;
+    ocena_min CONSTANT smallint := 6;
+    ocena_max CONSTANT smallint := 10;
+    ocena_izvan_opsega EXCEPTION;
+    pogresna_ocena EXCEPTION;
+        BEGIN
+            IF ocena_nova NOT BETWEEN ocena_min AND ocena_max THEN
+            RAISE ocena_izvan_opsega;
+        END IF;
+--
+    SELECT Ocena INTO ocena_stara FROM ISPIT
+    WHERE Predmet# = predmet_id
+    AND Indeks# = student_id;
+        IF SQL%ROWCOUNT = 0 THEN
+        RAISE NO_DATA_FOUND;
+    END IF;
+--
+    IF ocena_nova < ocena_stara THEN
+        RAISE pogresna_ocena;
+    END IF;
+--
+UPDATE ISPIT
+    SET
+        Ocena = ocena_nova,
+        DatPol = SYSDATE
+        WHERE Predmet# = predmet_id
+        AND Indeks# = student_id;
+        IF SQL%ROWCOUNT = 0 THEN
+            DBMS_OUTPUT.PUT_LINE('ERROR: Update operation unsuccessfully completed.');
+                ELSE
+            DBMS_OUTPUT.PUT_LINE('Operation successfully completed: '||SQL%ROWCOUNT||' row(s) updated.');
+        END IF;
+    EXCEPTION
+        WHEN ocena_izvan_opsega THEN
+            DBMS_OUTPUT.PUT_LINE('UPOZORENJE: Nova ocena ('||ocena_nova||') je izvan opsega [6..10]!');
+        WHEN NO_DATA_FOUND THEN
+            DBMS_OUTPUT.PUT_LINE('UPOZORENJE: Nije pronadjen traženi ISPIT.');
+        WHEN pogresna_ocena THEN
+            DBMS_OUTPUT.PUT_LINE('UPOZORENJE: Nova ocena ('||ocena_nova||') može biti ista ili veća od prethodne ocene ('||ocena_stara||'), a nikako manja. ');
+END promeni_ocenu;
+/
+-- u anonimnom bloku proveravamo ispravnost procedure promeni_ocenu()
+BEGIN -- Staro, tj. početno stanje: ISPIT( predmet: 16; indeks: 14002; datum: 21.03.2014; ocena: 8 )
+promeni_ocenu(16, 14002, 12); -- UPOZORENJE: Nova ocena (12) je izvan opsega [6..10]!
+-- promeni_ocenu(14002, 16, 8); -- UPOZORENJE: Nije pronadjen trazeni ISPIT.
+-- promeni_ocenu(16, 14002, 7); -- UPOZORENJE: Nova ocena (7) moze biti ista ili veca od prethodne ocene (8), a nikako manja.
+-- promeni_ocenu(16, 14002, 8); -- OK. Obratite pažnju na novi datum.
+-- promeni_ocenu(16, 14002, 9); -- OK
+END;
+/SELECT * FROM ISPIT WHERE predmet# = 16 AND indeks# = 14002;
+
+
+ --FUNKCIJEEEEEEEEEE
+ --uk broj pol izpita--2pros ocena za polozene ispite
+ --odsek i smer koji je student upisao, kao jedan string
+ CREATE OR REPLACE FUNCTION br_polozeniih_ispita (stud_id in smallint)
+    RETURN number
+IS
+    broj_polozenih number := 0;
+BEGIN
+    SELECT COUNT (*) INTO broj_polozenih 
+    FROM ISPIT
+    WHERE Indeks# = stud_id
+    GROUP BY Indeks#;
+    RETURN broj_polozenih;
+END;
+
+SELECT Indeks#, Ime, Prezime, br_polozeniih_ispita(17014) as br_pol
+    FROM Ispit
+    JOIN STUDENT ON Indeks# = I#;
+
+--nikolina
+CREATE OR REPLACE FUNCTION broj_polozenih (stud_id IN smallint)
+    RETURN number
+    IS 
+        br_polozenih number := 0;
+    BEGIN
+        SELECT COUNT(*)
+        INTO br_polozenih
+        FROM ispit
+        WHERE indeks# = stud_id
+        GROUP BY indeks#;
+    RETURN br_polozenih;
+    END;
+    
+SELECT broj_polozenih (14002) FROM DUAL;
